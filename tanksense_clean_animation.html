@@ -1,0 +1,751 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: transparent; font-family: var(--font-sans, system-ui, sans-serif); }
+
+canvas { display: block; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+.scene {
+  display: grid;
+  grid-template-columns: 160px 1fr 180px;
+  gap: 32px;
+  padding: 28px 24px 24px;
+  align-items: start;
+}
+
+.panel-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: none;
+  letter-spacing: 0.03em;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+/* LEFT COLUMN — power stack */
+.power-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: center;
+}
+.power-block {
+  width: 140px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-secondary);
+  background: var(--color-background-primary);
+  padding: 10px 12px;
+  text-align: center;
+  position: relative;
+}
+.power-block-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+}
+.power-block-sub {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+.wire-v {
+  width: 2px;
+  height: 20px;
+  margin: 0 auto;
+  position: relative;
+}
+.wire-v-inner {
+  width: 2px;
+  height: 20px;
+  background: #B4B2A9;
+  margin: 0 auto;
+}
+.wire-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #888780;
+  margin: 0 auto;
+  position: relative;
+  top: -4px;
+}
+
+.solar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 3px;
+  margin: 6px 0 4px;
+}
+.solar-cell {
+  height: 14px;
+  background: #EF9F27;
+  opacity: 0.35;
+  border-radius: 2px;
+}
+
+.battery-bar-bg {
+  height: 6px;
+  background: var(--color-background-secondary);
+  border-radius: 3px;
+  margin: 6px 0 2px;
+  overflow: hidden;
+}
+.battery-bar-fill {
+  height: 6px;
+  width: 80%;
+  background: #639922;
+  border-radius: 3px;
+  animation: batteryPulse 3s ease-in-out infinite;
+}
+@keyframes batteryPulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.esp-led {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1D9E75;
+  margin-right: 5px;
+  vertical-align: middle;
+  animation: ledBlink 1.4s ease-in-out infinite;
+}
+@keyframes ledBlink {
+  0%,100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.relay-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7F77DD;
+  margin-right: 5px;
+  vertical-align: middle;
+  animation: relayPulse 2s ease-in-out infinite;
+}
+@keyframes relayPulse {
+  0%,100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+/* TANK CANVAS WRAPPER */
+.tank-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+#tankCanvas {
+  border-radius: 12px;
+  border: 1.5px solid #B5D4F4;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.8s ease;
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.sensor-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+}
+.sensor-chip {
+  flex: 1;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-secondary);
+  background: var(--color-background-primary);
+  padding: 8px 6px;
+  text-align: center;
+}
+.sensor-chip-name {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 3px;
+}
+.sensor-chip-val {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  transition: color 0.8s ease;
+}
+.sensor-chip-val.danger { color: #A32D2D; }
+.sensor-chip-val.safe   { color: #0F6E56; }
+
+/* RIGHT COLUMN — phone */
+.phone-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.phone-outer {
+  width: 160px;
+  background: #1e1e1c;
+  border-radius: 28px;
+  padding: 14px 10px 20px;
+  border: 2px solid #333331;
+}
+.phone-screen {
+  background: #111110;
+  border-radius: 18px;
+  overflow: hidden;
+  min-height: 280px;
+}
+.phone-header {
+  background: #185FA5;
+  padding: 10px 12px 8px;
+  text-align: center;
+}
+.phone-app-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #E6F1FB;
+}
+.phone-app-sub {
+  font-size: 10px;
+  color: #85B7EB;
+  margin-top: 1px;
+}
+.phone-body {
+  padding: 10px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.phone-status-badge {
+  border-radius: 8px;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.8s ease;
+}
+.phone-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  border-bottom: 0.5px solid #222220;
+}
+.phone-row-label {
+  font-size: 10px;
+  color: #5DCAA5;
+}
+.phone-row-val {
+  font-size: 10px;
+  font-weight: 500;
+  transition: color 0.8s ease;
+}
+.phone-uvc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+}
+.phone-uvc-label {
+  font-size: 10px;
+  color: #5DCAA5;
+}
+.phone-uvc-badge {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  transition: all 0.8s ease;
+}
+.notif-banner {
+  border-radius: 8px;
+  padding: 7px 8px;
+  margin-top: 4px;
+  animation: notifAppear 4s ease-in-out infinite;
+  opacity: 0;
+}
+@keyframes notifAppear {
+  0%   { opacity: 0; transform: translateY(4px); }
+  15%  { opacity: 1; transform: translateY(0); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.notif-title {
+  font-size: 10px;
+  font-weight: 500;
+  color: #AFA9EC;
+  margin-bottom: 2px;
+}
+.notif-body {
+  font-size: 9px;
+  color: #7F77DD;
+}
+.phone-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+}
+.phone-home-btn {
+  width: 36px;
+  height: 5px;
+  background: #333331;
+  border-radius: 3px;
+}
+
+.timer-label {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<h2 class="sr-only">TankSense animation showing dirty water being purified by UV-C light and clean water status on mobile app</h2>
+
+<div class="scene">
+
+  <!-- LEFT: Power stack -->
+  <div>
+    <div class="panel-label">Power system</div>
+    <div class="power-stack">
+
+      <div class="power-block" style="border-color:#BA7517; background:#FAEEDA;">
+        <div class="power-block-title" style="color:#633806;">Solar panel</div>
+        <div class="solar-grid">
+          <div class="solar-cell"></div><div class="solar-cell"></div><div class="solar-cell"></div>
+          <div class="solar-cell"></div><div class="solar-cell"></div><div class="solar-cell"></div>
+        </div>
+        <div class="power-block-sub" style="color:#854F0B;">12V · 20W</div>
+      </div>
+
+      <div class="wire-v"><div class="wire-v-inner" style="background:#BA7517;"></div></div>
+
+      <div class="power-block" style="border-color:#3B6D11; background:#EAF3DE;">
+        <div class="power-block-title" style="color:#27500A;">Battery</div>
+        <div class="battery-bar-bg"><div class="battery-bar-fill"></div></div>
+        <div class="power-block-sub" style="color:#3B6D11;">LiFePO₄ · 12V · 10Ah</div>
+      </div>
+
+      <div class="wire-v"><div class="wire-v-inner" style="background:#3B6D11;"></div></div>
+
+      <div class="power-block" style="border-color:#185FA5; background:#E6F1FB;">
+        <div class="power-block-title" style="color:#0C447C;">
+          <span class="esp-led"></span>ESP32
+        </div>
+        <div class="power-block-sub" style="color:#185FA5;">WiFi · ADC · 30s cycle</div>
+      </div>
+
+      <div class="wire-v"><div class="wire-v-inner" style="background:#7F77DD;"></div></div>
+
+      <div class="power-block" style="border-color:#534AB7; background:#EEEDFE;">
+        <div class="power-block-title" style="color:#3C3489;">
+          <span class="relay-dot"></span>Relay
+        </div>
+        <div class="power-block-sub" style="color:#534AB7;">UV-C on/off switch</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CENTER: Tank canvas + sensors -->
+  <div class="tank-wrap">
+    <div class="panel-label">Water tank (cross-section)</div>
+    <canvas id="tankCanvas" width="280" height="340"></canvas>
+
+    <div id="statusPill" class="status-pill" style="background:#FCEBEB; color:#A32D2D;">
+      <div class="status-dot" style="background:#A32D2D;"></div>
+      <span id="statusText">Contamination detected</span>
+    </div>
+
+    <div class="sensor-row">
+      <div class="sensor-chip">
+        <div class="sensor-chip-name">Turbidity</div>
+        <div class="sensor-chip-val danger" id="turbVal">142 NTU</div>
+      </div>
+      <div class="sensor-chip">
+        <div class="sensor-chip-name">pH level</div>
+        <div class="sensor-chip-val danger" id="phVal">5.8</div>
+      </div>
+      <div class="sensor-chip">
+        <div class="sensor-chip-name">TDS</div>
+        <div class="sensor-chip-val danger" id="tdsVal">820 ppm</div>
+      </div>
+    </div>
+    <div class="timer-label" id="timerLabel">UV-C purification active…</div>
+  </div>
+
+  <!-- RIGHT: Phone -->
+  <div class="phone-wrap">
+    <div class="panel-label">TankSense app</div>
+    <div class="phone-outer">
+      <div class="phone-screen">
+        <div class="phone-header">
+          <div class="phone-app-name">TankSense</div>
+          <div class="phone-app-sub">Smart water monitor</div>
+        </div>
+        <div class="phone-body">
+
+          <div id="phoneBadge" class="phone-status-badge" style="background:#3C1414; color:#F09595;">
+            Danger — purifying
+          </div>
+
+          <div class="phone-row">
+            <span class="phone-row-label">Turbidity</span>
+            <span class="phone-row-val" id="pTurb" style="color:#F09595;">142 NTU</span>
+          </div>
+          <div class="phone-row">
+            <span class="phone-row-label">pH</span>
+            <span class="phone-row-val" id="pPh" style="color:#FAC775;">5.8</span>
+          </div>
+          <div class="phone-row">
+            <span class="phone-row-label">TDS</span>
+            <span class="phone-row-val" id="pTds" style="color:#F09595;">820 ppm</span>
+          </div>
+
+          <div class="phone-uvc-row">
+            <span class="phone-uvc-label">UV-C lamp</span>
+            <span class="phone-uvc-badge" id="uvcBadge" style="background:#3C3489; color:#AFA9EC;">ON</span>
+          </div>
+
+          <div class="notif-banner" style="background:#1a1830; border: 0.5px solid #534AB7;">
+            <div class="notif-title">Alert sent</div>
+            <div class="notif-body">UV-C activated — purifying now</div>
+          </div>
+
+        </div>
+      </div>
+      <div class="phone-footer"><div class="phone-home-btn"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById('tankCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const TANK_X = 24, TANK_Y = 28, TANK_W = 232, TANK_H = 280;
+const WATER_TOP = TANK_Y + 30;
+const WATER_BOT = TANK_Y + TANK_H - 8;
+const LAMP_CX = TANK_X + TANK_W / 2;
+const LAMP_TOP = TANK_Y + 18;
+const LAMP_BOT = TANK_Y + TANK_H - 14;
+
+let phase = 0;
+let t = 0;
+
+const particles = [];
+for (let i = 0; i < 28; i++) {
+  particles.push({
+    x: TANK_X + 20 + Math.random() * (TANK_W - 40),
+    y: WATER_TOP + 20 + Math.random() * (WATER_BOT - WATER_TOP - 40),
+    r: 2.5 + Math.random() * 3.5,
+    vx: (Math.random() - 0.5) * 0.6,
+    vy: (Math.random() - 0.5) * 0.6,
+    opacity: 0.5 + Math.random() * 0.4,
+    hue: Math.random() > 0.5 ? '#C87137' : '#9A4020',
+  });
+}
+
+const bubbles = [];
+for (let i = 0; i < 10; i++) {
+  bubbles.push({
+    x: TANK_X + 30 + Math.random() * (TANK_W - 60),
+    y: WATER_BOT - Math.random() * 60,
+    r: 2 + Math.random() * 2.5,
+    speed: 0.5 + Math.random() * 0.8,
+    opacity: 0,
+    phase: Math.random() * Math.PI * 2,
+  });
+}
+
+function lerp(a, b, t) { return a + (b - a) * Math.clamp(t, 0, 1); }
+Math.clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+function getProgress() {
+  const CYCLE = 420;
+  const elapsed = t % CYCLE;
+  if (elapsed < 180) return { purifying: true, progress: 0 };
+  if (elapsed < 360) return { purifying: true, progress: (elapsed - 180) / 180 };
+  return { purifying: false, progress: 1, done: true, reset: elapsed > 380 };
+}
+
+function drawTank(prog, purifying) {
+  ctx.clearRect(0, 0, W, H);
+
+  const dirtyColor = { r: 130, g: 90, b: 50 };
+  const cleanColor = { r: 60, g: 160, b: 210 };
+  const p = Math.pow(prog, 0.7);
+
+  const wr = Math.round(lerp(dirtyColor.r, cleanColor.r, p));
+  const wg = Math.round(lerp(dirtyColor.g, cleanColor.g, p));
+  const wb = Math.round(lerp(dirtyColor.b, cleanColor.b, p));
+  const waterOpacity = lerp(0.55, 0.28, p);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(TANK_X, TANK_Y, TANK_W, TANK_H, 10);
+  ctx.clip();
+
+  ctx.fillStyle = `rgba(${wr},${wg},${wb},${waterOpacity})`;
+  ctx.fillRect(TANK_X, WATER_TOP, TANK_W, WATER_BOT - WATER_TOP);
+
+  const uvAlpha = purifying ? 0.06 + 0.08 * Math.sin(t * 0.12) : 0;
+  if (uvAlpha > 0) {
+    ctx.fillStyle = `rgba(127,119,221,${uvAlpha})`;
+    ctx.fillRect(TANK_X, WATER_TOP, TANK_W, WATER_BOT - WATER_TOP);
+  }
+
+  particles.forEach(pp => {
+    pp.x += pp.vx;
+    pp.y += pp.vy;
+    if (pp.x < TANK_X + 10) pp.vx = Math.abs(pp.vx);
+    if (pp.x > TANK_X + TANK_W - 10) pp.vx = -Math.abs(pp.vx);
+    if (pp.y < WATER_TOP + 10) pp.vy = Math.abs(pp.vy);
+    if (pp.y > WATER_BOT - 10) pp.vy = -Math.abs(pp.vy);
+
+    const fade = 1 - p;
+    if (fade > 0.02) {
+      ctx.beginPath();
+      ctx.arc(pp.x, pp.y, pp.r * fade, 0, Math.PI * 2);
+      ctx.fillStyle = pp.hue;
+      ctx.globalAlpha = pp.opacity * fade;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  });
+
+  bubbles.forEach(b => {
+    if (purifying) {
+      b.y -= b.speed;
+      b.opacity = Math.min(b.opacity + 0.03, 0.5);
+    } else {
+      b.opacity = Math.max(b.opacity - 0.02, 0);
+    }
+    if (b.y < WATER_TOP + 5) {
+      b.y = WATER_BOT - 5;
+      b.x = TANK_X + 30 + Math.random() * (TANK_W - 60);
+      b.opacity = 0;
+    }
+    if (b.opacity > 0.05) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(200,220,255,${b.opacity})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  });
+
+  ctx.restore();
+
+  ctx.strokeStyle = '#185FA5';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(TANK_X, TANK_Y, TANK_W, TANK_H, 10);
+  ctx.stroke();
+
+  const uvIntensity = purifying ? 0.7 + 0.3 * Math.sin(t * 0.15) : 0;
+  if (uvIntensity > 0) {
+    const numRays = 8;
+    for (let i = 0; i < numRays; i++) {
+      const yy = LAMP_TOP + 30 + i * ((LAMP_BOT - LAMP_TOP - 40) / (numRays - 1));
+      const rayOff = t * 0.08 + i * 0.7;
+      const rayAlpha = uvIntensity * (0.4 + 0.3 * Math.sin(rayOff));
+      const rayLen = 40 + 15 * Math.sin(rayOff * 1.3);
+
+      ctx.save();
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = `rgba(127,119,221,${rayAlpha})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(LAMP_CX - 10, yy);
+      ctx.lineTo(LAMP_CX - 10 - rayLen, yy);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(LAMP_CX + 10, yy);
+      ctx.lineTo(LAMP_CX + 10 + rayLen, yy);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  const sleeveAlpha = purifying ? 0.25 + 0.1 * Math.sin(t * 0.12) : 0.15;
+  ctx.strokeStyle = `rgba(175,169,236,${sleeveAlpha})`;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.roundRect(LAMP_CX - 14, LAMP_TOP - 4, 28, LAMP_BOT - LAMP_TOP + 10, 14);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const lampGlow = purifying ? 0.9 + 0.1 * Math.sin(t * 0.15) : 0.4;
+  ctx.fillStyle = `rgba(238,237,254,${lampGlow})`;
+  ctx.strokeStyle = purifying ? '#534AB7' : '#AFA9EC';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(LAMP_CX - 8, LAMP_TOP, 16, LAMP_BOT - LAMP_TOP, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = purifying ? '#534AB7' : '#AFA9EC';
+  ctx.beginPath();
+  ctx.roundRect(LAMP_CX - 9, LAMP_TOP - 5, 18, 9, 4);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(LAMP_CX - 9, LAMP_BOT - 4, 18, 9, 4);
+  ctx.fill();
+
+  const sensorY = LAMP_BOT + 12;
+  const sensors = [
+    { x: TANK_X + 38, color: '#1D9E75', label: 'Turb' },
+    { x: TANK_X + TANK_W / 2 - 14, color: '#378ADD', label: 'pH' },
+    { x: TANK_X + TANK_W - 66, color: '#EF9F27', label: 'TDS' },
+  ];
+  sensors.forEach((s, i) => {
+    const pulse = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.08 + i * 1.1));
+    ctx.fillStyle = s.color;
+    ctx.globalAlpha = pulse;
+    ctx.beginPath();
+    ctx.arc(s.x + 14, sensorY + 10, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(s.x, sensorY, 28, 20, 4);
+    ctx.stroke();
+    ctx.fillStyle = s.color;
+    ctx.font = '9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.label, s.x + 14, sensorY + 13);
+    ctx.textAlign = 'left';
+  });
+
+  ctx.strokeStyle = '#B4B2A9';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(TANK_X + 10, WATER_TOP + 8);
+  ctx.lineTo(TANK_X + TANK_W - 10, WATER_TOP + 8);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#888780';
+  ctx.font = '9px system-ui, sans-serif';
+  ctx.fillText('water level', TANK_X + 14, WATER_TOP + 6);
+
+  const pipeX = LAMP_CX - 5;
+  ctx.fillStyle = '#B4B2A9';
+  ctx.fillRect(pipeX, TANK_Y - 16, 10, 20);
+  ctx.fillStyle = '#888780';
+  ctx.font = '9px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('inlet', pipeX + 5, TANK_Y - 20);
+  ctx.textAlign = 'left';
+
+  const outX = TANK_X + TANK_W - 16;
+  ctx.fillStyle = '#B4B2A9';
+  ctx.fillRect(outX, TANK_Y + TANK_H - 4, 10, 18);
+  ctx.fillStyle = '#888780';
+  ctx.font = '9px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('outlet', outX + 5, TANK_Y + TANK_H + 25);
+  ctx.textAlign = 'left';
+}
+
+function updateUI(prog, purifying, done) {
+  const pct = Math.round(prog * 100);
+
+  const turbDirty = '142 NTU', turbClean = '4 NTU';
+  const phDirty = '5.8', phClean = '7.2';
+  const tdsDirty = '820 ppm', tdsClean = '95 ppm';
+
+  const turb = prog > 0.5 ? turbClean : turbDirty;
+  const ph   = prog > 0.6 ? phClean   : phDirty;
+  const tds  = prog > 0.5 ? tdsClean  : tdsDirty;
+
+  const isDangerous = prog < 0.8;
+
+  document.getElementById('turbVal').textContent = turb;
+  document.getElementById('phVal').textContent = ph;
+  document.getElementById('tdsVal').textContent = tds;
+  document.getElementById('turbVal').className = 'sensor-chip-val ' + (isDangerous ? 'danger' : 'safe');
+  document.getElementById('phVal').className   = 'sensor-chip-val ' + (prog < 0.7 ? 'danger' : 'safe');
+  document.getElementById('tdsVal').className  = 'sensor-chip-val ' + (isDangerous ? 'danger' : 'safe');
+
+  document.getElementById('pTurb').textContent = turb;
+  document.getElementById('pPh').textContent   = ph;
+  document.getElementById('pTds').textContent  = tds;
+  document.getElementById('pTurb').style.color = isDangerous ? '#F09595' : '#5DCAA5';
+  document.getElementById('pPh').style.color   = prog < 0.7  ? '#FAC775' : '#5DCAA5';
+  document.getElementById('pTds').style.color  = isDangerous ? '#F09595' : '#5DCAA5';
+
+  const pill = document.getElementById('statusPill');
+  const statusText = document.getElementById('statusText');
+  const phoneBadge = document.getElementById('phoneBadge');
+  const uvcBadge = document.getElementById('uvcBadge');
+  const timerLabel = document.getElementById('timerLabel');
+
+  if (done) {
+    pill.style.background = '#E1F5EE';
+    pill.style.color = '#085041';
+    pill.querySelector('.status-dot').style.background = '#1D9E75';
+    statusText.textContent = 'Water safe — purification complete';
+    phoneBadge.style.background = '#04342C';
+    phoneBadge.style.color = '#9FE1CB';
+    phoneBadge.textContent = 'Safe — water clean';
+    uvcBadge.style.background = '#1a1a18';
+    uvcBadge.style.color = '#5F5E5A';
+    uvcBadge.textContent = 'OFF';
+    timerLabel.textContent = 'Next scan in 30 s';
+  } else if (purifying) {
+    pill.style.background = '#EEEDFE';
+    pill.style.color = '#3C3489';
+    pill.querySelector('.status-dot').style.background = '#534AB7';
+    statusText.textContent = `UV-C purifying… ${pct}%`;
+    phoneBadge.style.background = '#3C1414';
+    phoneBadge.style.color = '#F09595';
+    phoneBadge.textContent = prog < 0.05 ? 'Danger — UV-C activating' : `Purifying… ${pct}%`;
+    uvcBadge.style.background = '#3C3489';
+    uvcBadge.style.color = '#AFA9EC';
+    uvcBadge.textContent = 'ON';
+    timerLabel.textContent = 'UV-C purification active…';
+  }
+}
+
+function tick() {
+  t++;
+  const { purifying, progress, done, reset } = getProgress();
+  drawTank(progress, purifying);
+  updateUI(progress, purifying, done);
+  requestAnimationFrame(tick);
+}
+
+tick();
+</script>
+</body>
+</html>
